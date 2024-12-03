@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Churn Prediction</title>
+    <style>
+        /* Ensure the page fits within the viewport */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh; /* Ensures the container is centered vertically */
+            overflow: hidden; /* Prevent scrolling */
+        }
+        .container {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 100%; /* Ensure full width usage */
+            max-width: 900px; /* Limit the width */
+            text-align: center;
+            box-sizing: border-box; /* Includes padding in the width calculation */
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        form {
+            display: flex;
+            flex-wrap: wrap; /* Allow columns to wrap */
+            gap: 15px;
+            justify-content: space-between; /* Space out the columns */
+        }
+        label {
+            font-weight: bold;
+            color: #555;
+            text-align: left;
+            display: block;
+            margin-bottom: 5px;
+        }
+        input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            width: 100%; /* Ensure full width usage */
+            box-sizing: border-box; /* Ensures full width usage */
+        }
+        input:invalid {
+            border-color: red;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            max-width: 400px; /* Limit popup width */
+            width: 100%;
+            box-sizing: border-box;
+        }
+        #popup button {
+            margin-top: 10px;
+            background-color: #007bff;
+        }
+
+        /* Style for two-column layout */
+        .half-width {
+            width: 48%; /* Take half of the width */
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .half-width {
+                width: 100%; /* Stack inputs on small screens */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Churn Prediction Form</h2>
+        <form id="predictionForm">
+            <div class="half-width">
+                <label for="Age">Age (12-83):</label>
+                <input type="number" id="Age" name="Age" min="12" max="83" placeholder="12-83" required>
+            </div>
+            <div class="half-width">
+                <label for="Tenure">Tenure (0-122):</label>
+                <input type="number" id="Tenure" name="Tenure" min="0" max="122" placeholder="0-122" required>
+            </div>
+
+            <div class="half-width">
+                <label for="MonthlyCharges">Monthly Charges (30.0-119.96):</label>
+                <input type="number" step="0.01" id="MonthlyCharges" name="MonthlyCharges" min="30.0" max="119.96" placeholder="30.0-119.96" required>
+            </div>
+            <div class="half-width">
+                <label for="ContractType">Contract Type (0-2):</label>
+                <input type="number" id="ContractType" name="ContractType" min="0" max="2" placeholder="0-2" required>
+            </div>
+
+            <div class="half-width">
+                <label for="InternetService">Internet Service (0-2):</label>
+                <input type="number" id="InternetService" name="InternetService" min="0" max="2" placeholder="0-2" required>
+            </div>
+            <div class="half-width">
+                <label for="TotalCharges">Total Charges (0.0-12416.25):</label>
+                <input type="number" step="0.01" id="TotalCharges" name="TotalCharges" min="0.0" max="12416.25" placeholder="0.0-12416.25" required>
+            </div>
+
+            <div class="half-width">
+                <label for="TechSupport">Tech Support (0-1):</label>
+                <input type="number" id="TechSupport" name="TechSupport" min="0" max="1" placeholder="0-1" required>
+            </div>
+
+            <button type="submit">Predict Churn</button>
+        </form>
+    </div>
+
+    <div id="popup">
+        <h3 id="popupTitle">Prediction Result</h3>
+        <p id="popupMessage"></p>
+        <button onclick="closePopup()">Close</button>
+    </div>
+
+    <script>
+        const form = document.getElementById('predictionForm');
+        const popup = document.getElementById('popup');
+        const popupMessage = document.getElementById('popupMessage');
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            // Validate values against ranges
+            const ranges = {
+                Age: [12, 83],
+                Tenure: [0, 122],
+                MonthlyCharges: [30.0, 119.96],
+                ContractType: [0, 2],
+                InternetService: [0, 2],
+                TotalCharges: [0.0, 12416.25],
+                TechSupport: [0, 1]
+            };
+
+            for (const key in ranges) {
+                const value = parseFloat(data[key]);
+                const [min, max] = ranges[key];
+                if (value < min || value > max) {
+                    popupMessage.textContent = `Invalid input for ${key}. Please enter a value between ${min} and ${max}.`;
+                    popup.style.display = 'block';
+                    return;
+                }
+            }
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+
+                if (result.error) {
+                    popupMessage.textContent = `Error: ${result.error}`;
+                } else {
+                    popupMessage.textContent = `Churn Prediction: ${result['Churn Prediction']} \nProbability: ${result['Probability']}`;
+                }
+
+                popup.style.display = 'block';
+            } catch (error) {
+                popupMessage.textContent = 'An error occurred. Please try again.';
+                popup.style.display = 'block';
+            }
+        });
+
+        function closePopup() {
+            popup.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
